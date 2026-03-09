@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Hangman – Multiple Words on One Page</title>
+<style>
+body{
+font-family:Arial;
+text-align:center;
+background:linear-gradient(120deg,#4facfe,#00f2fe);
+margin:0;
+}
+h1{color:white;margin-top:20px;}
+.game-container{
+background:white;
+width:700px;
+margin:auto;
+padding:20px;
+border-radius:10px;
+box-shadow:0 5px 15px rgba(0,0,0,0.2);
+margin-top:20px;
+}
+.word-container{
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+margin:20px;
+}
+.word{
+display:flex;
+gap:5px;
+margin-bottom:10px;
+}
+.letter{
+font-size:28px;
+font-weight:bold;
+width:30px;
+border-bottom:2px solid #333;
+text-align:center;
+}
+#keyboard button{
+margin:4px;
+padding:10px 14px;
+font-size:16px;
+border:none;
+background:#2196f3;
+color:white;
+border-radius:5px;
+cursor:pointer;
+}
+#keyboard button:hover{background:#0b7dda;}
+#keyboard button:disabled{background:gray;cursor:not-allowed;}
+#info{margin-top:15px;font-size:18px;}
+#score{color:#2e7d32;font-weight:bold;}
+#lives{color:red;font-weight:bold;}
+canvas{background:#f4f4f4;border-radius:10px;margin-top:10px;}
+#restart,#startSession{margin-top:15px;padding:10px 20px;background:#ff5722;color:white;border:none;border-radius:6px;cursor:pointer;}
+#restart:hover,#startSession:hover{background:#e64a19;}
+#message{margin-top:15px;font-weight:bold;font-size:18px;}
+</style>
+</head>
+<body>
+
+<h1>🎮 Hangman – Multiple Words Display</h1>
+
+<div class="game-container">
+
+<div id="setup">
+<label>How many phrases do you want to play? </label>
+<input type="number" id="numWords" min="1" max="5" value="3">
+<button id="startSession" onclick="startSession()">Start</button>
+</div>
+
+<canvas id="hangman" width="200" height="200" style="display:none;"></canvas>
+
+<div id="wordContainer" class="word-container"></div>
+
+<div id="keyboard"></div>
+
+<div id="info" style="display:none;">
+Lives: <span id="lives">6</span> | Score: <span id="score">0</span>
+</div>
+
+<div id="message"></div>
+
+<button id="restart" onclick="restartGame()" style="display:none;">Restart Session</button>
+
+</div>
+
+<script>
+const phrases=[
+"HELLO WORLD",
+"JAVA SCRIPT",
+"OPEN AI",
+"FULL STACK DEVELOPER",
+"WEB DEVELOPMENT",
+"ARTIFICIAL INTELLIGENCE",
+"DATA SCIENCE"
+];
+
+let sessionWords=[];
+let guessed=[];
+let wrong=0;
+let score=0;
+const maxWrong=6;
+
+const canvas=document.getElementById("hangman");
+const ctx=canvas.getContext("2d");
+
+function startSession(){
+let n=parseInt(document.getElementById("numWords").value);
+if(n<1){alert("Enter at least 1 word");return;}
+sessionWords=[];
+const copyPhrases=[...phrases];
+for(let i=0;i<n;i++){
+if(copyPhrases.length===0) break;
+let idx=Math.floor(Math.random()*copyPhrases.length);
+sessionWords.push(copyPhrases[idx]);
+copyPhrases.splice(idx,1);
+}
+guessed=[];
+wrong=0;
+score=0;
+document.getElementById("setup").style.display="none";
+document.getElementById("info").style.display="block";
+document.getElementById("lives").innerHTML=maxWrong;
+document.getElementById("score").innerHTML=score;
+canvas.style.display="block";
+document.getElementById("restart").style.display="block";
+ctx.clearRect(0,0,200,200);
+createKeyboard();
+displayWords();
+document.getElementById("message").innerHTML="";
+}
+
+function displayWords(){
+const wordContainer=document.getElementById("wordContainer");
+wordContainer.innerHTML="";
+let allGuessed=true;
+sessionWords.forEach(phrase=>{
+const words=phrase.split(" ");
+words.forEach(w=>{
+const wordDiv=document.createElement("div");
+wordDiv.className="word";
+for(let letter of w){
+const span=document.createElement("div");
+span.className="letter";
+if(guessed.includes(letter)){
+span.textContent=letter;
+}else{
+span.textContent="_";
+allGuessed=false;
+}
+wordDiv.appendChild(span);
+}
+wordContainer.appendChild(wordDiv);
+});
+});
+if(allGuessed){
+score=sessionWords.length;
+document.getElementById("score").innerHTML=score;
+document.getElementById("message").innerHTML="🎉 You Won All Phrases!";
+disableKeyboard();
+}
+}
+
+function createKeyboard(){
+const keyboard=document.getElementById("keyboard");
+keyboard.innerHTML="";
+for(let i=65;i<=90;i++){
+let letter=String.fromCharCode(i);
+let button=document.createElement("button");
+button.innerText=letter;
+button.onclick=function(){guess(letter);button.disabled=true;};
+keyboard.appendChild(button);
+}
+}
+
+function guess(letter){
+let correct=false;
+sessionWords.forEach(phrase=>{
+if(phrase.includes(letter)) correct=true;
+});
+if(correct){
+guessed.push(letter);
+}else{
+wrong++;
+drawHangman();
+}
+document.getElementById("lives").innerHTML=maxWrong-wrong;
+displayWords();
+if(wrong>=maxWrong){
+document.getElementById("message").innerHTML="💀 Game Over! Words were: "+sessionWords.join(", ");
+disableKeyboard();
+}
+}
+
+function disableKeyboard(){
+let buttons=document.querySelectorAll("#keyboard button");
+buttons.forEach(btn=>btn.disabled=true);
+}
+
+function drawHangman(){
+ctx.lineWidth=3;
+switch(wrong){
+case 1: ctx.fillRect(10,180,180,5); break;
+case 2: ctx.fillRect(40,20,5,160); break;
+case 3: ctx.fillRect(40,20,80,5); break;
+case 4: ctx.beginPath(); ctx.arc(120,40,15,0,Math.PI*2); ctx.stroke(); break;
+case 5: ctx.fillRect(118,55,4,50); break;
+case 6: ctx.beginPath(); ctx.moveTo(120,60); ctx.lineTo(90,90); ctx.moveTo(120,60); ctx.lineTo(150,90); ctx.stroke(); break;
+}
+}
+
+function restartGame(){
+document.getElementById("setup").style.display="block";
+document.getElementById("info").style.display="none";
+canvas.style.display="none";
+document.getElementById("restart").style.display="none";
+document.getElementById("message").innerHTML="";
+document.getElementById("score").innerHTML=0;
+}
+</script>
+</body>
+</html>
